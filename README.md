@@ -6,8 +6,8 @@ I decided to build this simple python script using scapy so that I could record 
 ## Usage
 
 ```
-usage: probemon.py [-h] [-i INTERFACE] [-t TIME] [-o OUTPUT] [-b MAX_BYTES]
-                   [-c MAX_BACKUPS] [-d DELIMITER] [-f] [-s]
+usage: probemon.py [-h] [-i INTERFACE] [-t TIME] [-o OUTPUT] 
+                   [-d DELIMITER] [-s]
 
 a command line tool for logging 802.11 probe request frames
 
