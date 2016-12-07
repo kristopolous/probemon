@@ -1,0 +1,8 @@
+/var/log/probemon.log {
+  rotate 60
+  daily 
+  dateext
+  compress
+  missingok
+  notifempty
+}
