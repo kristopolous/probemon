@@ -8,16 +8,16 @@ import sys
 import logging
 from scapy.all import *
 from pprint import pprint
-from logging.handlers import RotatingFileHandler
-
 
 NAME = 'probemon'
 DESCRIPTION = "a command line tool for logging 802.11 probe request frames"
 
 DEBUG = False
+LAST = []
 
-def build_packet_callback(time_fmt, logger, delimiter, mac_info, ssid, rssi):
+def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
 	def packet_callback(packet):
+		global LAST
 		
 		if not packet.haslayer(Dot11):
 			return
@@ -40,14 +40,6 @@ def build_packet_callback(time_fmt, logger, delimiter, mac_info, ssid, rssi):
 		# append the mac address itself
 		fields.append(packet.addr2)
 
-		# parse mac address and look up the organization from the vendor octets
-		if mac_info:
-			try:
-				parsed_mac = netaddr.EUI(packet.addr2)
-				fields.append(parsed_mac.oui.registration().org)
-			except netaddr.core.NotRegisteredError, e:
-				fields.append('UNKNOWN')
-
 		# include the SSID in the probe frame
 		if ssid:
 			fields.append(packet.info)
@@ -56,7 +48,13 @@ def build_packet_callback(time_fmt, logger, delimiter, mac_info, ssid, rssi):
 			rssi_val = -(256-ord(packet.notdecoded[-4:-3]))
 			fields.append(str(rssi_val))
 
-		logger.info(delimiter.join(fields))
+		if packet.addr2 not in LAST:
+			with open(output, 'a') as m:
+				m.write(delimiter.join(fields) + "\n")
+
+		LAST.append(packet.addr2)
+		if len(LAST) == 5:
+			LAST = LAST[1:]
 
 	return packet_callback
 
@@ -65,14 +63,11 @@ def main():
 	parser.add_argument('-i', '--interface', help="capture interface")
 	parser.add_argument('-t', '--time', default='iso', help="output time format (unix, iso)")
 	parser.add_argument('-o', '--output', default='probemon.log', help="logging output location")
-	parser.add_argument('-b', '--max-bytes', default=5000000, help="maximum log size in bytes before rotating")
-	parser.add_argument('-c', '--max-backups', default=99999, help="maximum number of log files to keep")
 	parser.add_argument('-d', '--delimiter', default='\t', help="output field delimiter")
 	parser.add_argument('-f', '--mac-info', action='store_true', help="include MAC address manufacturer")
 	parser.add_argument('-s', '--ssid', action='store_true', help="include probe SSID in output")
 	parser.add_argument('-r', '--rssi', action='store_true', help="include rssi in output")
 	parser.add_argument('-D', '--debug', action='store_true', help="enable debug output")
-	parser.add_argument('-l', '--log', action='store_true', help="enable scrolling live view of the logfile")
 	args = parser.parse_args()
 
 	if not args.interface:
@@ -81,14 +76,7 @@ def main():
 	
 	DEBUG = args.debug
 
-	# setup our rotating logger
-	logger = logging.getLogger(NAME)
-	logger.setLevel(logging.INFO)
-	handler = RotatingFileHandler(args.output, maxBytes=args.max_bytes, backupCount=args.max_backups)
-	logger.addHandler(handler)
-	if args.log:
-		logger.addHandler(logging.StreamHandler(sys.stdout))
-	built_packet_cb = build_packet_callback(args.time, logger, 
+	built_packet_cb = build_packet_callback(args.time, args.output, 
 		args.delimiter, args.mac_info, args.ssid, args.rssi)
 	sniff(iface=args.interface, prn=built_packet_cb, store=0)
 
