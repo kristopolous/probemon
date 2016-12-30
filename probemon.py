@@ -13,12 +13,9 @@ NAME = 'probemon'
 DESCRIPTION = "a command line tool for logging 802.11 probe request frames"
 
 DEBUG = False
-LAST = []
 
 def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
 	def packet_callback(packet):
-		global LAST
-		
 		if not packet.haslayer(Dot11):
 			return
 
@@ -48,13 +45,8 @@ def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
 			rssi_val = -(256-ord(packet.notdecoded[-4:-3]))
 			fields.append(str(rssi_val))
 
-		if packet.addr2 not in LAST:
-			with open(output, 'a') as m:
-				m.write(delimiter.join(fields) + "\n")
-
-		LAST.append(packet.addr2)
-		if len(LAST) == 5:
-			LAST = LAST[1:]
+		with open(output, 'a') as m:
+			m.write(delimiter.join(fields) + "\n")
 
 	return packet_callback
 
