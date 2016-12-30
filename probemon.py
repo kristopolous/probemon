@@ -6,7 +6,8 @@ import argparse
 import netaddr
 import sys
 import logging
-from scapy.all import *
+from scapy.sendrecv import sniff
+from scapy.layers import dot11
 from pprint import pprint
 
 NAME = 'probemon'
@@ -16,7 +17,7 @@ DEBUG = False
 
 def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
 	def packet_callback(packet):
-		if not packet.haslayer(Dot11):
+		if not packet.haslayer(dot11.Dot11):
 			return
 
 		# we are looking for management frames with a probe subtype
