@@ -1,11 +1,13 @@
-#!/bin/sh
+#!/bin/bash
+pwd=$PWD
 cd /var/log/probemon
-service ifplugd stop
+#service ifplugd stop
+set -x
 
-for id in 0 1 2 ; do
+for id in 1 6 7 ; do
 	dev=wlan$id
 	ifconfig $dev down
 	iwconfig $dev mode monitor
 	ifconfig $dev up
-	/home/pi/probemon/probemon.py -r -t unix -i $dev -o probemon-dev-$id.log &
+	$pwd/probemon.py -r -t unix -i $dev -o probemon-dev-$id.log &
 done
