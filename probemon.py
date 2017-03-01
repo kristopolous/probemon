@@ -16,8 +16,6 @@ from pprint import pprint
 NAME = 'probemon'
 DESCRIPTION = "a command line tool for logging 802.11 probe request frames"
 
-DEBUG = False
-
 def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
 	def packet_callback(packet):
 		if not packet.haslayer(dot11.Dot11):
@@ -57,21 +55,16 @@ def writer(q, fname):
     while True:
         line = q.get()
         # This is to avoid file corruption on reboot
-        fd = os.open(fname, os.O_WRONLY | os.O_APPEND | os.O_SYNC )
+        fd = os.open(fname, os.O_WRONLY | os.O_APPEND | os.O_SYNC | os.O_CREAT)
         os.write(fd, line + "\n")
         os.close(fd)
 
 def sniff_wrap(iface, prn, store):
-    sniff(iface=iface, prn=prn, store=store)
-
-# We need to provide "proof" that we are up and running.
-def hb_writer(delimiter):
-    counter = 0
-    instance = str(uuid.uuid4())
     while True:
-        q.put(delimiter.join([str(int(time.time())), instance, str(counter)]))
-        counter += 1
-        time.sleep(10)
+        try:
+            sniff(iface=iface, prn=prn, store=store)
+        except:
+            pass
 
 def main():
 	parser = argparse.ArgumentParser(description=DESCRIPTION)
@@ -82,23 +75,25 @@ def main():
 	parser.add_argument('-f', '--mac-info', action='store_true', help="include MAC address manufacturer")
 	parser.add_argument('-s', '--ssid', action='store_true', help="include probe SSID in output")
 	parser.add_argument('-r', '--rssi', action='store_true', help="include rssi in output")
-	parser.add_argument('-D', '--debug', action='store_true', help="enable debug output")
 	args = parser.parse_args()
 
 	if not args.interface:
-		print "error: capture interface not given, try --help"
-		sys.exit(-1)
+	    print "error: capture interface not given, try --help"
+	    sys.exit(-1)
 	
-	DEBUG = args.debug
-
-
 	built_packet_cb = build_packet_callback(args.time, args.output, 
 		args.delimiter, args.mac_info, args.ssid, args.rssi)
 
         # Start the sniffer and hb writer
-        Process(target = sniff_wrap, args=(args.interface, built_packet_cb, 0)).start()
-        Process(target = hb_writer, args=(args.delimiter,)).start()
         Process(target = writer, args=(q,args.output)).start()
+        Process(target = sniff_wrap, args=(args.interface, built_packet_cb, 0)).start()
+
+        counter = 0
+        instance = str(uuid.uuid4())
+        while True:
+            q.put(args.delimiter.join([str(int(time.time())), instance, str(counter)]))
+            counter += 1
+            time.sleep(10)
 
 if __name__ == '__main__':
         q = Queue()
