@@ -6,6 +6,9 @@ import argparse
 import netaddr
 import sys
 import logging
+import os
+import uuid
+from multiprocessing import Process, Queue
 from scapy.sendrecv import sniff
 from scapy.layers import dot11
 from pprint import pprint
@@ -46,10 +49,29 @@ def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
 			rssi_val = -(256-ord(packet.notdecoded[-4:-3]))
 			fields.append(str(rssi_val))
 
-		with open(output, 'a') as m:
-			m.write(delimiter.join(fields) + "\n")
+                q.put(delimiter.join(fields))
 
 	return packet_callback
+
+def writer(q, fname):
+    while True:
+        line = q.get()
+        # This is to avoid file corruption on reboot
+        fd = os.open(fname, os.O_WRONLY | os.O_APPEND | os.O_SYNC )
+        os.write(fd, line + "\n")
+        os.close(fd)
+
+def sniff_wrap(iface, prn, store):
+    sniff(iface=iface, prn=prn, store=store)
+
+# We need to provide "proof" that we are up and running.
+def hb_writer(delimiter):
+    counter = 0
+    instance = str(uuid.uuid4())
+    while True:
+        q.put(delimiter.join([str(int(time.time())), instance, str(counter)]))
+        counter += 1
+        time.sleep(10)
 
 def main():
 	parser = argparse.ArgumentParser(description=DESCRIPTION)
@@ -69,9 +91,15 @@ def main():
 	
 	DEBUG = args.debug
 
+
 	built_packet_cb = build_packet_callback(args.time, args.output, 
 		args.delimiter, args.mac_info, args.ssid, args.rssi)
-	sniff(iface=args.interface, prn=built_packet_cb, store=0)
+
+        # Start the sniffer and hb writer
+        Process(target = sniff_wrap, args=(args.interface, built_packet_cb, 0)).start()
+        Process(target = hb_writer, args=(args.delimiter,)).start()
+        Process(target = writer, args=(q,args.output)).start()
 
 if __name__ == '__main__':
+        q = Queue()
 	main()
