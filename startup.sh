@@ -10,6 +10,13 @@ ifconfig $dev down
 iwconfig $dev mode monitor
 ifconfig $dev up
 
+ret=1
+while [ $ret -ne "0" ]; do
+  ntpdate pool.ntp.org
+  ret=$?
+  [ $ret ] || sleep 10
+done
+
 $SRCHOME/probemon.py -r -t unix -i $dev -o probemon-dev-0.log &
 
 # /dev/urandom needs to "build up" entropy for uuidgen ...
@@ -22,11 +29,5 @@ whoami=`cat whoami`
 
 while [ 0 ]; do
   rsync -avzr /var/log/probemon/ chris@9ol.es:logs/$whoami
-  sleep 10
-  ntpdate pool.ntp.org
-
-  sleep 30
-  ntpdate pool.ntp.org
-
-  sleep 590
+  sleep 600
 done
