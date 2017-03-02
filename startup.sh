@@ -13,7 +13,7 @@ ret=1
 while [ $ret -ne "0" ]; do
   ntpdate pool.ntp.org
   ret=$?
-  [ $ret ] || sleep 10
+  [ $ret ] || sleep 5
 done
 
 $SRCHOME/probemon.py -r -t unix -i $dev -o probemon-dev-0.log &
