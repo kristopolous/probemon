@@ -1,0 +1,15 @@
+# This is the dev id to use
+DEV=wlan1
+
+# This is where the logs go
+LOGDIR=/var/log/probemon
+
+# Should we try to update our time from the server?
+# 0 MEANS NO
+NTPUPDATE=1
+
+# Should we try to rsync to a remote host?
+SYNC=1
+
+# Where should we sync (ignored if SYNC is 0)
+SYNCHOST=user@example.com:logs
