@@ -1,46 +1,45 @@
 #!/bin/bash
-cd /var/log/probemon
-dev=wlan1
-if [ -e /home/pi ]; then
-  SRCHOME=/home/pi/probemon
-else
-  SRCHOME=/home/chris/code/probemon
+SRCHOME="$(dirname $(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}"))"
+
+if [ ! -e $SRCHOME/config.cfg ]; then
+  echo "Create a config.cfg in $SRCHOME based off of config.cfg.example to set your own variables"
+  exit -1
 fi
-# service ifplugd stop
+. $SRCHOME/config.cfg
+
+cd $LOGDIR
 
 # We try to shutdown previous instances if applicable.
 $SRCHOME/shutdown.sh
 
-ntp() {
-  me=`whoami`
-  if [ "$me" = 'root' ]; then
-    ret=1
-    while [ $ret -ne "0" ]; do
-      ntpdate pool.ntp.org
-      ret=$?
-      [ $ret ] || sleep 5
-    done
-  fi
-}
-#ntp
+ifconfig $DEV down
+iwconfig $DEV mode monitor
+ifconfig $DEV up
 
-ifconfig $dev down
-iwconfig $dev mode monitor
-ifconfig $dev up
-
-$SRCHOME/probemon.py -r -t unix -i $dev -o probemon-dev-0.log &
-#ssh -NR 9ol.es:7000:localhost:22 chris@9ol.es&
-#service ssh start
-
-# /dev/urandom needs to "build up" entropy for uuidgen ...
-# this is obscure, but true ... might as well give it some space.
-if [ ! -s whoami ]; then
-  uuidgen > whoami
+# Try to update our time.  Things like Raspberry pi has
+# drift that we need to account for.
+if [ ! $NTPUPDATE ]; then 
+  ret=1
+  while [ $ret -ne "0" ]; do
+    ntpdate pool.ntp.org
+    ret=$?
+    [ $ret ] || sleep 5
+  done
 fi
 
-whoami=`cat whoami`
+$SRCHOME/probemon.py -r -t unix -i $DEV -o probemon-dev-0.log &
 
-while [ 0 ]; do
-  rsync -avzr /var/log/probemon/ chris@9ol.es:logs/$whoami
-  sleep 600
-done
+if [ ! $SYNC ]; then
+  # /dev/urandom needs to "build up" entropy for uuidgen ...
+  # this is obscure, but true ... might as well give it some space.
+  if [ ! -s whoami ]; then
+    uuidgen > whoami
+  fi
+
+  whoami=`cat whoami`
+
+  while [ 0 ]; do
+    rsync -avzr $LOGDIR $SYNCHOST/$whoami
+    sleep 600
+  done
+fi
