@@ -7,8 +7,9 @@ else
   SRCHOME=/home/chris/code/probemon
 fi
 # service ifplugd stop
-pslist=`pgrep probemon`
-[ -n "$pslist" ] && kill $pslist
+
+# We try to shutdown previous instances if applicable.
+$SRCHOME/shutdown.sh
 
 ntp() {
   me=`whoami`
