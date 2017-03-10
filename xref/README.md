@@ -1,5 +1,3 @@
-cleaning a file:
+These are various WIPs to do statistical analysis on the results.
 
-Files can get corrupted data. To clean it:
-
-grep -Pv '\x00'
+Nothing formalized
