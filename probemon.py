@@ -64,7 +64,7 @@ def sniff_wrap(iface, prn, store):
         try:
             sniff(iface=iface, prn=prn, store=store)
         except Exception as ex:
-            print ex
+            print ex, iface
             if ex[0] == 100:
                 os.system("/sbin/iwconfig %s mode monitor" % iface)
                 os.system("/sbin/ifconfig %s up" % iface)
