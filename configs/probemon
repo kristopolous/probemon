@@ -1,5 +1,5 @@
 /var/log/probemon/probemon-dev-0.log {
-  rotate 600
+  rotate 60
   daily 
   dateext
   compress
