@@ -10,30 +10,34 @@ ifconfig $dev down
 iwconfig $dev mode monitor
 ifconfig $dev up
 
-# Try to sync with the NTP server
-ret=1
-attempts=20
-while [ $ret -ne "0" -a $attempts -gt "0" ]; do
-  ntpdate pool.ntp.org >& /dev/null
-  ret=$?
-  attempts=$(( attempts - 1 ))
-
-  if [ $ret -ne "0" ]; then 
-     echo -n $attempts" "
-     sleep 5
+timesync() {
+  # Try to sync with the NTP server
+  ret=1
+  attempts=20
+  while [ $ret -ne "0" -a $attempts -gt "0" ]; do
+    ntpdate pool.ntp.org >& /dev/null
+    ret=$?
+    attempts=$(( attempts - 1 ))
+  
+    if [ $ret -ne "0" ]; then 
+       echo -n $attempts" "
+       sleep 5
+    fi
+  done
+  
+  # If this fails then we just push our timestamps 3
+  # minutes forward from the last recorded time. The 
+  # focus here is that we don't want overlap.  This
+  # policy may be (ok, it's very likely) incorrect
+  # but it's the best we can do
+  if [ $attempts -eq "0" -a -s $LOG ]; then
+    lasttime=`tail -1 $LOG | awk ' { print $1 } '`
+    newtime=$(( lasttime + 180 ))
+    date -s @$newtime
   fi
-done
+}
 
-# If this fails then we just push our timestamps 3
-# minutes forward from the last recorded time. The 
-# focus here is that we don't want overlap.  This
-# policy may be (ok, it's very likely) incorrect
-# but it's the best we can do
-if [ $attempts -eq "0" -a -s $LOG ]; then
-  lasttime=`tail -1 $LOG | awk ' { print $1 } '`
-  newtime=$(( lasttime + 180 ))
-  date -s @$newtime
-fi
+timesync
   
 $SRCHOME/probemon.py -r -t unix -i $dev -o $LOG &
 
