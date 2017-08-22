@@ -30,9 +30,10 @@ def build_packet_callback(time_fmt, output, delimiter, mac_info, ssid, rssi):
         fields = []
 
         # determine preferred time format 
-        log_time = str(int(time.time()))
         if time_fmt == 'iso':
             log_time = datetime.datetime.now().isoformat()
+        else
+            log_time = datetime.datetime.utcnow().strftime("%s")
 
         fields.append(log_time)
 

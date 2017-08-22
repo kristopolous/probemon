@@ -14,14 +14,14 @@ weekly = []
 hourly = []
 currentSlice = False
 tslice = 60
-RSS_cutoff = -57
+RSS_CUTOFF = -80
 
 def tots(what):
     return datetime.datetime.fromtimestamp(what).strftime('%d %H:%M')
 
 def sigdistrib(hourly, cutoff, macMap, macAvg):
-    step=5
-    max=110
+    step = 5
+    max = 110
     sys.stdout.write("         ")
     for i in xrange(0, max, step):
        sys.stdout.write("%4d " % i)
@@ -109,4 +109,4 @@ for mac, sigList in macMapSignal.iteritems():
     #print sample_mean
     #print "%.2f" % variance, sample_mean, '*' * (max(sigList) - min(sigList))
 
-sigdistrib(hourly, -66, macMap, macAvg)
+sigdistrib(hourly, RSS_CUTOFF, macMap, macAvg)
